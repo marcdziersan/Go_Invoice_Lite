@@ -1,0 +1,84 @@
+{{define "content"}}
+<section class="hero">
+    <p class="eyebrow">Angemeldet als {{.CurrentUser.Username}}</p>
+    <h1>Dashboard</h1>
+    <p class="muted">Kunden, Angebote und Rechnungen in einer kleinen Go-Webanwendung.</p>
+</section>
+
+<section class="grid cards">
+    <article class="card">
+        <span class="card-label">Kunden</span>
+        <strong>{{.Stats.Customers}}</strong>
+    </article>
+    <article class="card">
+        <span class="card-label">Angebote</span>
+        <strong>{{.Stats.Quotes}}</strong>
+    </article>
+    <article class="card">
+        <span class="card-label">Rechnungen</span>
+        <strong>{{.Stats.Invoices}}</strong>
+    </article>
+    <article class="card">
+        <span class="card-label">Offen</span>
+        <strong>{{money .Stats.OutstandingGross}}</strong>
+    </article>
+    <article class="card">
+        <span class="card-label">Bezahlt</span>
+        <strong>{{money .Stats.RevenueGross}}</strong>
+    </article>
+</section>
+
+<section class="split">
+    <article class="panel">
+        <div class="panel-head">
+            <h2>Letzte Angebote</h2>
+            <a class="button small" href="/quotes/new">Neu</a>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr><th>Nummer</th><th>Kunde</th><th>Status</th><th>Brutto</th></tr>
+                </thead>
+                <tbody>
+                    {{range .RecentQuotes}}
+                    <tr>
+                        <td>{{.Number}}</td>
+                        <td>{{.CustomerName}}</td>
+                        <td><span class="badge">{{.Status}}</span></td>
+                        <td>{{money .GrossAmount}}</td>
+                    </tr>
+                    {{else}}
+                    <tr><td colspan="4" class="empty">Noch keine Angebote.</td></tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+    </article>
+
+    <article class="panel">
+        <div class="panel-head">
+            <h2>Letzte Rechnungen</h2>
+            <a class="button small" href="/invoices/new">Neu</a>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr><th>Nummer</th><th>Kunde</th><th>Status</th><th>Brutto</th></tr>
+                </thead>
+                <tbody>
+                    {{range .RecentInvoices}}
+                    <tr>
+                        <td>{{.Number}}</td>
+                        <td>{{.CustomerName}}</td>
+                        <td><span class="badge">{{.Status}}</span></td>
+                        <td>{{money .GrossAmount}}</td>
+                    </tr>
+                    {{else}}
+                    <tr><td colspan="4" class="empty">Noch keine Rechnungen.</td></tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+    </article>
+</section>
+{{end}}

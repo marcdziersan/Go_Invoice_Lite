@@ -1,0 +1,25 @@
+{{define "content"}}
+<section class="auth-card">
+    <div>
+        <p class="eyebrow">Business Tool in Go</p>
+        <h1>Login</h1>
+        <p class="muted">Standardzugang beim ersten Start: <strong>admin</strong> / <strong>admin123</strong></p>
+    </div>
+
+    {{if .Error}}
+    <div class="alert">{{.Error}}</div>
+    {{end}}
+
+    <form method="post" action="/login" class="form">
+        <label>
+            Benutzername
+            <input name="username" value="{{.Username}}" autocomplete="username" required>
+        </label>
+        <label>
+            Passwort
+            <input name="password" type="password" autocomplete="current-password" required>
+        </label>
+        <button class="button primary" type="submit">Einloggen</button>
+    </form>
+</section>
+{{end}}

@@ -1,0 +1,54 @@
+{{define "content"}}
+<section class="page-head">
+    <div>
+        <p class="eyebrow">Accounting</p>
+        <h1>Rechnungen</h1>
+    </div>
+    <div class="button-row">
+        <a class="button" href="/invoices/export.csv">CSV-Export</a>
+        <a class="button primary" href="/invoices/new">Rechnung anlegen</a>
+    </div>
+</section>
+
+{{if .Error}}<div class="alert">{{.Error}}</div>{{end}}
+
+<section class="panel">
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Nummer</th>
+                    <th>Kunde</th>
+                    <th>Titel</th>
+                    <th>Status</th>
+                    <th>Datum</th>
+                    <th>Fällig</th>
+                    <th>Brutto</th>
+                    <th class="actions">Aktion</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .Invoices}}
+                <tr>
+                    <td><strong>{{.Number}}</strong></td>
+                    <td>{{.CustomerName}}</td>
+                    <td>{{.Title}}</td>
+                    <td><span class="badge">{{.Status}}</span></td>
+                    <td>{{.InvoiceDate}}</td>
+                    <td>{{.DueDate}}</td>
+                    <td>{{money .GrossAmount}}</td>
+                    <td class="actions">
+                        <a class="button small" href="/invoices/{{.ID}}/edit">Bearbeiten</a>
+                        <form method="post" action="/invoices/{{.ID}}/delete" data-confirm="Rechnung wirklich löschen?">
+                            <button class="button danger small" type="submit">Löschen</button>
+                        </form>
+                    </td>
+                </tr>
+                {{else}}
+                <tr><td colspan="8" class="empty">Noch keine Rechnungen angelegt.</td></tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+</section>
+{{end}}

@@ -1,0 +1,60 @@
+{{define "content"}}
+<section class="page-head">
+    <div>
+        <p class="eyebrow">CRM</p>
+        <h1>{{.Title}}</h1>
+    </div>
+    <a class="button" href="/customers">Zurück</a>
+</section>
+
+{{if .Error}}<div class="alert">{{.Error}}</div>{{end}}
+
+<section class="panel narrow">
+    <form method="post" class="form">
+        <label>
+            Firma *
+            <input name="company" value="{{.Customer.Company}}" required>
+        </label>
+
+        <div class="form-grid">
+            <label>
+                Ansprechpartner
+                <input name="contact_name" value="{{.Customer.ContactName}}">
+            </label>
+            <label>
+                E-Mail
+                <input name="email" type="email" value="{{.Customer.Email}}">
+            </label>
+        </div>
+
+        <div class="form-grid">
+            <label>
+                Telefon
+                <input name="phone" value="{{.Customer.Phone}}">
+            </label>
+            <label>
+                Straße
+                <input name="street" value="{{.Customer.Street}}">
+            </label>
+        </div>
+
+        <div class="form-grid">
+            <label>
+                PLZ
+                <input name="zip" value="{{.Customer.ZIP}}">
+            </label>
+            <label>
+                Ort
+                <input name="city" value="{{.Customer.City}}">
+            </label>
+        </div>
+
+        <label>
+            Notiz
+            <textarea name="note" rows="4">{{.Customer.Note}}</textarea>
+        </label>
+
+        <button class="button primary" type="submit">Speichern</button>
+    </form>
+</section>
+{{end}}

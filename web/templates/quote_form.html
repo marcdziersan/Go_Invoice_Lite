@@ -1,0 +1,63 @@
+{{define "content"}}
+<section class="page-head">
+    <div>
+        <p class="eyebrow">Sales</p>
+        <h1>{{.Title}}</h1>
+    </div>
+    <a class="button" href="/quotes">Zurück</a>
+</section>
+
+{{if .Error}}<div class="alert">{{.Error}}</div>{{end}}
+
+<section class="panel narrow">
+    <form method="post" class="form">
+        <label>
+            Kunde *
+            <select name="customer_id" required>
+                <option value="">Bitte wählen</option>
+                {{range .Customers}}
+                <option value="{{.ID}}" {{checkedID $.Quote.CustomerID .ID}}>{{.Company}}</option>
+                {{end}}
+            </select>
+        </label>
+
+        <label>
+            Titel *
+            <input name="title" value="{{.Quote.Title}}" required>
+        </label>
+
+        <label>
+            Beschreibung
+            <textarea name="description" rows="4">{{.Quote.Description}}</textarea>
+        </label>
+
+        <div class="form-grid">
+            <label>
+                Netto-Betrag *
+                <input name="net_amount" value="{{money .Quote.NetAmount}}" required>
+            </label>
+            <label>
+                MwSt in %
+                <input name="tax_rate" type="number" min="0" max="100" value="{{.Quote.TaxRate}}">
+            </label>
+        </div>
+
+        <div class="form-grid">
+            <label>
+                Status
+                <select name="status">
+                    {{range .Statuses}}
+                    <option value="{{.}}" {{selected $.Quote.Status .}}>{{.}}</option>
+                    {{end}}
+                </select>
+            </label>
+            <label>
+                Gültig bis
+                <input name="valid_until" type="date" value="{{.Quote.ValidUntil}}">
+            </label>
+        </div>
+
+        <button class="button primary" type="submit">Speichern</button>
+    </form>
+</section>
+{{end}}

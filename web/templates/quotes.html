@@ -1,0 +1,52 @@
+{{define "content"}}
+<section class="page-head">
+    <div>
+        <p class="eyebrow">Sales</p>
+        <h1>Angebote</h1>
+    </div>
+    <a class="button primary" href="/quotes/new">Angebot anlegen</a>
+</section>
+
+{{if .Error}}<div class="alert">{{.Error}}</div>{{end}}
+
+<section class="panel">
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Nummer</th>
+                    <th>Kunde</th>
+                    <th>Titel</th>
+                    <th>Status</th>
+                    <th>Gültig bis</th>
+                    <th>Brutto</th>
+                    <th class="actions">Aktion</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .Quotes}}
+                <tr>
+                    <td><strong>{{.Number}}</strong></td>
+                    <td>{{.CustomerName}}</td>
+                    <td>{{.Title}}</td>
+                    <td><span class="badge">{{.Status}}</span></td>
+                    <td>{{.ValidUntil}}</td>
+                    <td>{{money .GrossAmount}}</td>
+                    <td class="actions">
+                        <a class="button small" href="/quotes/{{.ID}}/edit">Bearbeiten</a>
+                        <form method="post" action="/quotes/{{.ID}}/convert">
+                            <button class="button success small" type="submit">→ Rechnung</button>
+                        </form>
+                        <form method="post" action="/quotes/{{.ID}}/delete" data-confirm="Angebot wirklich löschen?">
+                            <button class="button danger small" type="submit">Löschen</button>
+                        </form>
+                    </td>
+                </tr>
+                {{else}}
+                <tr><td colspan="7" class="empty">Noch keine Angebote angelegt.</td></tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+</section>
+{{end}}

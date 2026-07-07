@@ -1,0 +1,368 @@
+:root {
+    --bg: #f3f6fb;
+    --panel: #ffffff;
+    --text: #172033;
+    --muted: #68758a;
+    --line: #dce3ef;
+    --primary: #214fdb;
+    --primary-dark: #183ba6;
+    --danger: #b42318;
+    --success: #087443;
+    --shadow: 0 16px 40px rgba(23, 32, 51, 0.08);
+    --radius: 18px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background:
+        radial-gradient(circle at top left, rgba(33, 79, 219, 0.12), transparent 32rem),
+        var(--bg);
+    color: var(--text);
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    line-height: 1.5;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.topbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem clamp(1rem, 4vw, 3rem);
+    background: rgba(255, 255, 255, 0.82);
+    border-bottom: 1px solid var(--line);
+    backdrop-filter: blur(14px);
+}
+
+.brand {
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    font-size: 1.25rem;
+}
+
+.brand span {
+    color: var(--primary);
+}
+
+.nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    justify-content: flex-end;
+}
+
+.nav a {
+    padding: 0.55rem 0.75rem;
+    border-radius: 999px;
+    color: var(--muted);
+    font-weight: 700;
+    font-size: 0.92rem;
+}
+
+.nav a:hover {
+    background: #edf2ff;
+    color: var(--primary);
+}
+
+.page {
+    width: min(1180px, calc(100% - 2rem));
+    margin: 2rem auto;
+}
+
+.hero,
+.page-head,
+.panel,
+.auth-card,
+.card {
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+    border-radius: var(--radius);
+}
+
+.hero {
+    padding: clamp(1.5rem, 4vw, 3rem);
+    margin-bottom: 1.25rem;
+}
+
+h1,
+h2 {
+    margin: 0;
+    letter-spacing: -0.04em;
+}
+
+h1 {
+    font-size: clamp(2rem, 6vw, 4rem);
+    line-height: 0.95;
+}
+
+h2 {
+    font-size: 1.25rem;
+}
+
+.eyebrow {
+    color: var(--primary);
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 0.78rem;
+    margin: 0 0 0.5rem;
+}
+
+.muted {
+    color: var(--muted);
+}
+
+.grid {
+    display: grid;
+    gap: 1rem;
+}
+
+.cards {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    margin-bottom: 1.25rem;
+}
+
+.card {
+    padding: 1.2rem;
+}
+
+.card-label {
+    display: block;
+    color: var(--muted);
+    font-size: 0.85rem;
+    font-weight: 800;
+}
+
+.card strong {
+    display: block;
+    margin-top: 0.5rem;
+    font-size: clamp(1.35rem, 3vw, 2rem);
+}
+
+.split {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem;
+}
+
+.panel {
+    padding: 1rem;
+}
+
+.panel.narrow,
+.auth-card {
+    max-width: 760px;
+    margin-inline: auto;
+}
+
+.auth-card {
+    padding: clamp(1.5rem, 4vw, 2.5rem);
+}
+
+.panel-head,
+.page-head,
+.button-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.page-head {
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+}
+
+.table-wrap {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 760px;
+}
+
+th,
+td {
+    padding: 0.85rem;
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+    vertical-align: top;
+}
+
+th {
+    color: var(--muted);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+tr:last-child td {
+    border-bottom: 0;
+}
+
+.actions {
+    width: 1%;
+    white-space: nowrap;
+}
+
+.actions,
+.actions form {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.form {
+    display: grid;
+    gap: 1rem;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+label {
+    display: grid;
+    gap: 0.35rem;
+    color: var(--muted);
+    font-weight: 800;
+    font-size: 0.9rem;
+}
+
+input,
+select,
+textarea {
+    width: 100%;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 0.85rem 0.95rem;
+    color: var(--text);
+    background: #fff;
+    font: inherit;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    outline: 3px solid rgba(33, 79, 219, 0.15);
+    border-color: var(--primary);
+}
+
+.button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--text);
+    min-height: 2.5rem;
+    padding: 0.55rem 0.85rem;
+    border-radius: 999px;
+    font-weight: 900;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.button.primary {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+}
+
+.button.primary:hover {
+    background: var(--primary-dark);
+}
+
+.button.small {
+    min-height: 2rem;
+    padding: 0.35rem 0.65rem;
+    font-size: 0.82rem;
+}
+
+.button.danger {
+    color: #fff;
+    background: var(--danger);
+    border-color: var(--danger);
+}
+
+.button.success {
+    color: #fff;
+    background: var(--success);
+    border-color: var(--success);
+}
+
+.badge {
+    display: inline-flex;
+    padding: 0.22rem 0.55rem;
+    border-radius: 999px;
+    background: #edf2ff;
+    color: var(--primary);
+    font-weight: 900;
+    font-size: 0.78rem;
+}
+
+.alert {
+    margin: 0 0 1rem;
+    padding: 0.9rem 1rem;
+    border-radius: 14px;
+    background: #fff1f0;
+    border: 1px solid #ffd0cc;
+    color: var(--danger);
+    font-weight: 800;
+}
+
+.empty {
+    text-align: center;
+    color: var(--muted);
+    padding: 2rem;
+}
+
+.footer {
+    width: min(1180px, calc(100% - 2rem));
+    margin: 2rem auto;
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    color: var(--muted);
+    font-size: 0.88rem;
+}
+
+@media (max-width: 900px) {
+    .topbar,
+    .page-head,
+    .panel-head,
+    .footer {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .cards,
+    .split,
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .nav {
+        justify-content: flex-start;
+    }
+
+    h1 {
+        font-size: 2.3rem;
+    }
+}

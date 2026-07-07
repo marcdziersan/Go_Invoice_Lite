@@ -1,0 +1,68 @@
+{{define "content"}}
+<section class="page-head">
+    <div>
+        <p class="eyebrow">Accounting</p>
+        <h1>{{.Title}}</h1>
+    </div>
+    <a class="button" href="/invoices">Zurück</a>
+</section>
+
+{{if .Error}}<div class="alert">{{.Error}}</div>{{end}}
+
+<section class="panel narrow">
+    <form method="post" class="form">
+        <label>
+            Kunde *
+            <select name="customer_id" required>
+                <option value="">Bitte wählen</option>
+                {{range .Customers}}
+                <option value="{{.ID}}" {{checkedID $.Invoice.CustomerID .ID}}>{{.Company}}</option>
+                {{end}}
+            </select>
+        </label>
+
+        <label>
+            Titel *
+            <input name="title" value="{{.Invoice.Title}}" required>
+        </label>
+
+        <label>
+            Beschreibung
+            <textarea name="description" rows="4">{{.Invoice.Description}}</textarea>
+        </label>
+
+        <div class="form-grid">
+            <label>
+                Netto-Betrag *
+                <input name="net_amount" value="{{money .Invoice.NetAmount}}" required>
+            </label>
+            <label>
+                MwSt in %
+                <input name="tax_rate" type="number" min="0" max="100" value="{{.Invoice.TaxRate}}">
+            </label>
+        </div>
+
+        <div class="form-grid">
+            <label>
+                Status
+                <select name="status">
+                    {{range .Statuses}}
+                    <option value="{{.}}" {{selected $.Invoice.Status .}}>{{.}}</option>
+                    {{end}}
+                </select>
+            </label>
+            <label>
+                Rechnungsdatum *
+                <input name="invoice_date" type="date" value="{{.Invoice.InvoiceDate}}" required>
+            </label>
+        </div>
+
+        <label>
+            Fälligkeitsdatum *
+            <input name="due_date" type="date" value="{{.Invoice.DueDate}}" required>
+        </label>
+
+        <button class="button primary" type="submit">Speichern</button>
+    </form>
+</section>
+{{end}}

@@ -1,0 +1,47 @@
+{{define "content"}}
+<section class="page-head">
+    <div>
+        <p class="eyebrow">CRM</p>
+        <h1>Kunden</h1>
+    </div>
+    <a class="button primary" href="/customers/new">Kunde anlegen</a>
+</section>
+
+{{if .Error}}<div class="alert">{{.Error}}</div>{{end}}
+
+<section class="panel">
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Firma</th>
+                    <th>Ansprechpartner</th>
+                    <th>E-Mail</th>
+                    <th>Telefon</th>
+                    <th>Ort</th>
+                    <th class="actions">Aktion</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .Customers}}
+                <tr>
+                    <td><strong>{{.Company}}</strong></td>
+                    <td>{{.ContactName}}</td>
+                    <td>{{.Email}}</td>
+                    <td>{{.Phone}}</td>
+                    <td>{{.ZIP}} {{.City}}</td>
+                    <td class="actions">
+                        <a class="button small" href="/customers/{{.ID}}/edit">Bearbeiten</a>
+                        <form method="post" action="/customers/{{.ID}}/delete" data-confirm="Kunden wirklich löschen?">
+                            <button class="button danger small" type="submit">Löschen</button>
+                        </form>
+                    </td>
+                </tr>
+                {{else}}
+                <tr><td colspan="6" class="empty">Noch keine Kunden angelegt.</td></tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+</section>
+{{end}}

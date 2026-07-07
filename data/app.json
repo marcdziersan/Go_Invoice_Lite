@@ -1,0 +1,61 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "username": "admin",
+      "password_hash": "pbkdf2-sha256$120000$F5kG6X4VNjs1T7/IL3sPtw$otaYqGraQHe9vIfqwKef1UuSfUNs/ivH7pPMcedfulc",
+      "role": "admin",
+      "created_at": "2026-07-07T10:29:42.3610362+02:00"
+    }
+  ],
+  "customers": [
+    {
+      "id": 1,
+      "company": "Selbstständig",
+      "contact_name": "Marcus Dziersan",
+      "email": "marcus.dziersan@vodafone.de",
+      "phone": "+491628372760",
+      "street": "Ferdinandstraße 2",
+      "zip": "44536",
+      "city": "Lünen",
+      "note": "",
+      "created_at": "2026-07-07T10:30:44.0336928+02:00"
+    }
+  ],
+  "quotes": [
+    {
+      "id": 1,
+      "number": "Q-2026-0001",
+      "customer_id": 1,
+      "title": "Test",
+      "description": "Test angebot",
+      "net_amount": 250000,
+      "tax_rate": 19,
+      "gross_amount": 297500,
+      "status": "draft",
+      "valid_until": "2026-07-23",
+      "created_at": "2026-07-07T10:31:32.1151441+02:00"
+    }
+  ],
+  "invoices": [
+    {
+      "id": 1,
+      "number": "INV-2026-0001",
+      "customer_id": 1,
+      "quote_id": 1,
+      "title": "Test",
+      "description": "Test angebot",
+      "net_amount": 250000,
+      "tax_rate": 19,
+      "gross_amount": 297500,
+      "status": "paid",
+      "invoice_date": "2026-07-07",
+      "due_date": "2026-07-21",
+      "created_at": "2026-07-07T10:31:43.8108177+02:00"
+    }
+  ],
+  "next_user_id": 2,
+  "next_customer_id": 2,
+  "next_quote_id": 2,
+  "next_invoice_id": 2
+}
