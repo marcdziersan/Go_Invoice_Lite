@@ -12,7 +12,7 @@ import (
 	"go-invoice-lite/internal/web"
 )
 
-var statuses = []string{"draft", "sent", "accepted", "rejected"}
+var statuses = []string{"draft", "sent", "accepted", "declined"}
 
 type QuoteView struct {
 	model.Quote
@@ -55,7 +55,6 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.NotFound(w, r)
 			return
 		}
-
 		switch parts[2] {
 		case "edit":
 			switch r.Method {
@@ -91,25 +90,46 @@ func defaultQuote() model.Quote {
 	return model.Quote{
 		TaxRate: 19,
 		Status:  "draft",
+		Items: []model.LineItem{{
+			ID:       1,
+			Quantity: 1,
+			TaxRate:  19,
+		}},
 	}
 }
 
 func (h *Handler) list(w http.ResponseWriter, r *http.Request) {
 	user, _ := auth.UserFromContext(r.Context())
+	query := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("q")))
+	status := strings.TrimSpace(r.URL.Query().Get("status"))
+	customerID, _ := strconv.Atoi(r.URL.Query().Get("customer_id"))
 	quotes := h.store.ListQuotes()
 	views := make([]QuoteView, 0, len(quotes))
 	for _, q := range quotes {
-		views = append(views, QuoteView{
-			Quote:        q,
-			CustomerName: h.store.CustomerName(q.CustomerID),
-		})
+		customerName := h.store.CustomerName(q.CustomerID)
+		text := strings.ToLower(q.Number + " " + q.Title + " " + q.Description + " " + customerName)
+		if query != "" && !strings.Contains(text, query) {
+			continue
+		}
+		if status != "" && q.Status != status {
+			continue
+		}
+		if customerID > 0 && q.CustomerID != customerID {
+			continue
+		}
+		views = append(views, QuoteView{Quote: q, CustomerName: customerName})
 	}
 
 	h.renderer.Render(w, http.StatusOK, "quotes.html", map[string]any{
-		"Title":       "Angebote",
-		"CurrentUser": user,
-		"Quotes":      views,
-		"Error":       r.URL.Query().Get("error"),
+		"Title":            "Angebote",
+		"CurrentUser":      user,
+		"Quotes":           views,
+		"Customers":        h.store.ListCustomers(),
+		"Statuses":         statuses,
+		"Query":            r.URL.Query().Get("q"),
+		"FilterStatus":     status,
+		"FilterCustomerID": customerID,
+		"Error":            r.URL.Query().Get("error"),
 	})
 }
 
@@ -118,6 +138,9 @@ func (h *Handler) form(w http.ResponseWriter, r *http.Request, q model.Quote, me
 	title := "Angebot anlegen"
 	if q.ID > 0 {
 		title = "Angebot bearbeiten"
+	}
+	if len(q.Items) == 0 {
+		q.Items = defaultQuote().Items
 	}
 
 	h.renderer.Render(w, http.StatusOK, "quote_form.html", map[string]any{
@@ -140,12 +163,13 @@ func (h *Handler) editForm(w http.ResponseWriter, r *http.Request, id int) {
 }
 
 func (h *Handler) create(w http.ResponseWriter, r *http.Request) {
+	user, _ := auth.UserFromContext(r.Context())
 	q, err := quoteFromRequest(r)
 	if err != nil {
 		h.form(w, r, q, err.Error())
 		return
 	}
-	if _, err := h.store.CreateQuote(q); err != nil {
+	if _, err := h.store.CreateQuoteWithActor(user.Username, q); err != nil {
 		h.form(w, r, q, err.Error())
 		return
 	}
@@ -153,13 +177,14 @@ func (h *Handler) create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) update(w http.ResponseWriter, r *http.Request, id int) {
+	user, _ := auth.UserFromContext(r.Context())
 	q, err := quoteFromRequest(r)
 	q.ID = id
 	if err != nil {
 		h.form(w, r, q, err.Error())
 		return
 	}
-	if err := h.store.UpdateQuote(q); err != nil {
+	if err := h.store.UpdateQuoteWithActor(user.Username, q); err != nil {
 		h.form(w, r, q, err.Error())
 		return
 	}
@@ -167,7 +192,8 @@ func (h *Handler) update(w http.ResponseWriter, r *http.Request, id int) {
 }
 
 func (h *Handler) delete(w http.ResponseWriter, r *http.Request, id int) {
-	err := h.store.DeleteQuote(id)
+	user, _ := auth.UserFromContext(r.Context())
+	err := h.store.DeleteQuoteWithActor(user.Username, id)
 	if errors.Is(err, store.ErrForbidden) {
 		http.Redirect(w, r, "/quotes?error=Angebot kann nicht gelöscht werden, weil daraus bereits eine Rechnung erstellt wurde.", http.StatusSeeOther)
 		return
@@ -180,7 +206,8 @@ func (h *Handler) delete(w http.ResponseWriter, r *http.Request, id int) {
 }
 
 func (h *Handler) convert(w http.ResponseWriter, r *http.Request, id int) {
-	_, err := h.store.ConvertQuoteToInvoice(id)
+	user, _ := auth.UserFromContext(r.Context())
+	_, err := h.store.ConvertQuoteToInvoiceWithActor(user.Username, id)
 	if errors.Is(err, store.ErrConflict) {
 		http.Redirect(w, r, "/quotes?error=Für dieses Angebot existiert bereits eine Rechnung.", http.StatusSeeOther)
 		return
@@ -196,39 +223,59 @@ func quoteFromRequest(r *http.Request) (model.Quote, error) {
 	if err := r.ParseForm(); err != nil {
 		return model.Quote{}, err
 	}
-
 	customerID, _ := strconv.Atoi(r.FormValue("customer_id"))
-	taxRate, _ := strconv.Atoi(r.FormValue("tax_rate"))
-	if taxRate == 0 {
-		taxRate = 19
-	}
-	netAmount, err := web.ParseMoney(r.FormValue("net_amount"))
-	if err != nil {
-		return model.Quote{}, errors.New("Netto-Betrag ist ungültig.")
-	}
-
 	q := model.Quote{
 		CustomerID:  customerID,
 		Title:       strings.TrimSpace(r.FormValue("title")),
 		Description: strings.TrimSpace(r.FormValue("description")),
-		NetAmount:   netAmount,
-		TaxRate:     taxRate,
 		Status:      strings.TrimSpace(r.FormValue("status")),
 		ValidUntil:  strings.TrimSpace(r.FormValue("valid_until")),
+		Items:       lineItemsFromRequest(r),
 	}
 	if q.Status == "" {
 		q.Status = "draft"
 	}
-
 	if q.CustomerID <= 0 {
 		return q, errors.New("Kunde ist Pflicht.")
 	}
 	if q.Title == "" {
 		return q, errors.New("Titel ist Pflicht.")
 	}
-	if q.NetAmount < 0 {
-		return q, errors.New("Netto-Betrag darf nicht negativ sein.")
+	if len(model.NormalizeLineItems(q.Items)) == 0 {
+		return q, errors.New("Mindestens eine Position ist Pflicht.")
 	}
-
 	return q, nil
+}
+
+func lineItemsFromRequest(r *http.Request) []model.LineItem {
+	descriptions := r.Form["item_description"]
+	quantities := r.Form["item_quantity"]
+	amounts := r.Form["item_unit_net"]
+	taxes := r.Form["item_tax_rate"]
+	max := len(descriptions)
+	if len(quantities) > max {
+		max = len(quantities)
+	}
+	if len(amounts) > max {
+		max = len(amounts)
+	}
+	if len(taxes) > max {
+		max = len(taxes)
+	}
+	items := make([]model.LineItem, 0, max)
+	for i := 0; i < max; i++ {
+		desc := getFormIndex(descriptions, i)
+		qty, _ := strconv.ParseInt(strings.TrimSpace(getFormIndex(quantities, i)), 10, 64)
+		unit, _ := web.ParseMoney(getFormIndex(amounts, i))
+		tax, _ := strconv.Atoi(strings.TrimSpace(getFormIndex(taxes, i)))
+		items = append(items, model.LineItem{Description: desc, Quantity: qty, UnitNetAmount: unit, TaxRate: tax})
+	}
+	return items
+}
+
+func getFormIndex(values []string, index int) string {
+	if index < 0 || index >= len(values) {
+		return ""
+	}
+	return strings.TrimSpace(values[index])
 }

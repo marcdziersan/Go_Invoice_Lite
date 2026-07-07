@@ -10,6 +10,14 @@
 {{if .Error}}<div class="alert">{{.Error}}</div>{{end}}
 
 <section class="panel">
+    <form method="get" class="filters">
+        <input name="q" value="{{.Query}}" placeholder="Suche nach Firma, Ort, E-Mail, Telefon oder Notiz">
+        <button class="button" type="submit">Suchen</button>
+        <a class="button" href="/customers">Reset</a>
+    </form>
+</section>
+
+<section class="panel">
     <div class="table-wrap">
         <table>
             <thead>
@@ -38,7 +46,7 @@
                     </td>
                 </tr>
                 {{else}}
-                <tr><td colspan="6" class="empty">Noch keine Kunden angelegt.</td></tr>
+                <tr><td colspan="6" class="empty">Keine Kunden gefunden.</td></tr>
                 {{end}}
             </tbody>
         </table>

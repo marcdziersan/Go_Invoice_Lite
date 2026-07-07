@@ -3,6 +3,8 @@ package app
 import (
 	"net/http"
 
+	"go-invoice-lite/internal/admin"
+	"go-invoice-lite/internal/api"
 	"go-invoice-lite/internal/auth"
 	"go-invoice-lite/internal/customer"
 	"go-invoice-lite/internal/dashboard"
@@ -21,6 +23,8 @@ func New(st *store.Store) http.Handler {
 	customerHandler := customer.NewHandler(st, renderer)
 	quoteHandler := quote.NewHandler(st, renderer)
 	invoiceHandler := invoice.NewHandler(st, renderer)
+	adminHandler := admin.NewHandler(st, renderer)
+	apiHandler := api.NewHandler(st)
 
 	mux := http.NewServeMux()
 
@@ -28,7 +32,8 @@ func New(st *store.Store) http.Handler {
 	mux.Handle("/static/", http.StripPrefix("/static/", static))
 
 	mux.HandleFunc("/login", authHandler.Login)
-	mux.HandleFunc("/logout", authHandler.Logout)
+	mux.Handle("/logout", auth.RequireLogin(st, sessions, http.HandlerFunc(authHandler.Logout)))
+	mux.Handle("/account/password", auth.RequireLogin(st, sessions, http.HandlerFunc(authHandler.Password)))
 
 	mux.Handle("/customers", auth.RequireLogin(st, sessions, customerHandler))
 	mux.Handle("/customers/", auth.RequireLogin(st, sessions, customerHandler))
@@ -38,6 +43,14 @@ func New(st *store.Store) http.Handler {
 
 	mux.Handle("/invoices", auth.RequireLogin(st, sessions, invoiceHandler))
 	mux.Handle("/invoices/", auth.RequireLogin(st, sessions, invoiceHandler))
+
+	adminStack := auth.RequireLogin(st, sessions, auth.RequireAdmin(adminHandler))
+	mux.Handle("/users", adminStack)
+	mux.Handle("/users/", adminStack)
+	mux.Handle("/audit", adminStack)
+
+	mux.Handle("/api/", auth.RequireLogin(st, sessions, apiHandler))
+	mux.Handle("/api", auth.RequireLogin(st, sessions, apiHandler))
 
 	mux.Handle("/", auth.RequireLogin(st, sessions, dashboardHandler))
 

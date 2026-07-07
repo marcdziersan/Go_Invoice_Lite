@@ -33,17 +33,6 @@
 
         <div class="form-grid">
             <label>
-                Netto-Betrag *
-                <input name="net_amount" value="{{money .Quote.NetAmount}}" required>
-            </label>
-            <label>
-                MwSt in %
-                <input name="tax_rate" type="number" min="0" max="100" value="{{.Quote.TaxRate}}">
-            </label>
-        </div>
-
-        <div class="form-grid">
-            <label>
                 Status
                 <select name="status">
                     {{range .Statuses}}
@@ -55,6 +44,41 @@
                 Gültig bis
                 <input name="valid_until" type="date" value="{{.Quote.ValidUntil}}">
             </label>
+        </div>
+
+        <div class="line-items-head">
+            <h2>Positionen</h2>
+            <button class="button small" type="button" data-add-line-item>Position hinzufügen</button>
+        </div>
+
+        <div class="line-items" data-line-items>
+            {{range .Quote.Items}}
+            <div class="line-item" data-line-item>
+                <label>
+                    Beschreibung
+                    <input name="item_description" value="{{.Description}}" placeholder="z. B. Website Wartung">
+                </label>
+                <label>
+                    Menge
+                    <input name="item_quantity" type="number" min="1" value="{{.Quantity}}">
+                </label>
+                <label>
+                    Einzel netto
+                    <input name="item_unit_net" value="{{money .UnitNetAmount}}" placeholder="0,00">
+                </label>
+                <label>
+                    MwSt %
+                    <input name="item_tax_rate" type="number" min="0" max="100" value="{{.TaxRate}}">
+                </label>
+                <button class="button danger small" type="button" data-remove-line-item>Entfernen</button>
+            </div>
+            {{end}}
+        </div>
+
+        <div class="totals-box">
+            <span>Netto: <strong>{{money .Quote.NetAmount}}</strong></span>
+            <span>MwSt: <strong>{{money .Quote.TaxAmount}}</strong></span>
+            <span>Brutto: <strong>{{money .Quote.GrossAmount}}</strong></span>
         </div>
 
         <button class="button primary" type="submit">Speichern</button>

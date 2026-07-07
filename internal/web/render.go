@@ -36,6 +36,12 @@ func (r *Renderer) Render(w http.ResponseWriter, status int, page string, data m
 			}
 			return ""
 		},
+		"checkedBool": func(value bool) string {
+			if value {
+				return "checked"
+			}
+			return ""
+		},
 	}
 
 	files := []string{

@@ -1,0 +1,47 @@
+{{define "content"}}
+<section class="page-head">
+    <div>
+        <p class="eyebrow">Administration</p>
+        <h1>Audit-Log</h1>
+    </div>
+</section>
+
+<section class="panel">
+    <form method="get" class="filters">
+        <input name="q" value="{{.Query}}" placeholder="Suche nach Benutzer, Aktion, Entität oder Nachricht">
+        <button class="button" type="submit">Suchen</button>
+        <a class="button" href="/audit">Reset</a>
+    </form>
+</section>
+
+<section class="panel">
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Zeit</th>
+                    <th>Akteur</th>
+                    <th>Aktion</th>
+                    <th>Entität</th>
+                    <th>ID</th>
+                    <th>Nachricht</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .Events}}
+                <tr>
+                    <td>{{.CreatedAt}}</td>
+                    <td>{{.Actor}}</td>
+                    <td><span class="badge">{{.Action}}</span></td>
+                    <td>{{.Entity}}</td>
+                    <td>{{.EntityID}}</td>
+                    <td>{{.Message}}</td>
+                </tr>
+                {{else}}
+                <tr><td colspan="6" class="empty">Keine Audit-Einträge gefunden.</td></tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+</section>
+{{end}}

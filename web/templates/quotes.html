@@ -10,6 +10,22 @@
 {{if .Error}}<div class="alert">{{.Error}}</div>{{end}}
 
 <section class="panel">
+    <form method="get" class="filters">
+        <input name="q" value="{{.Query}}" placeholder="Suche nach Nummer, Kunde oder Titel">
+        <select name="status">
+            <option value="">Alle Status</option>
+            {{range .Statuses}}<option value="{{.}}" {{selected $.FilterStatus .}}>{{.}}</option>{{end}}
+        </select>
+        <select name="customer_id">
+            <option value="0">Alle Kunden</option>
+            {{range .Customers}}<option value="{{.ID}}" {{checkedID $.FilterCustomerID .ID}}>{{.Company}}</option>{{end}}
+        </select>
+        <button class="button" type="submit">Filtern</button>
+        <a class="button" href="/quotes">Reset</a>
+    </form>
+</section>
+
+<section class="panel">
     <div class="table-wrap">
         <table>
             <thead>
@@ -34,8 +50,8 @@
                     <td>{{money .GrossAmount}}</td>
                     <td class="actions">
                         <a class="button small" href="/quotes/{{.ID}}/edit">Bearbeiten</a>
-                        <form method="post" action="/quotes/{{.ID}}/convert">
-                            <button class="button success small" type="submit">→ Rechnung</button>
+                        <form method="post" action="/quotes/{{.ID}}/convert" data-confirm="Angebot in Rechnung umwandeln?">
+                            <button class="button success small" type="submit">Rechnung</button>
                         </form>
                         <form method="post" action="/quotes/{{.ID}}/delete" data-confirm="Angebot wirklich löschen?">
                             <button class="button danger small" type="submit">Löschen</button>
@@ -43,7 +59,7 @@
                     </td>
                 </tr>
                 {{else}}
-                <tr><td colspan="7" class="empty">Noch keine Angebote angelegt.</td></tr>
+                <tr><td colspan="7" class="empty">Keine Angebote gefunden.</td></tr>
                 {{end}}
             </tbody>
         </table>

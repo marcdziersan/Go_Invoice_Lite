@@ -3,6 +3,7 @@ package invoice
 import (
 	"encoding/csv"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -10,11 +11,12 @@ import (
 
 	"go-invoice-lite/internal/auth"
 	"go-invoice-lite/internal/model"
+	"go-invoice-lite/internal/pdf"
 	"go-invoice-lite/internal/store"
 	"go-invoice-lite/internal/web"
 )
 
-var statuses = []string{"open", "paid", "overdue", "cancelled"}
+var statuses = []string{"open", "paid", "overdue", "reminded", "cancelled"}
 
 type InvoiceView struct {
 	model.Invoice
@@ -81,6 +83,13 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 			h.delete(w, r, id)
 			return
+		case "pdf":
+			if r.Method != http.MethodGet {
+				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+				return
+			}
+			h.exportPDF(w, r, id)
+			return
 		}
 	}
 
@@ -94,25 +103,51 @@ func defaultInvoice() model.Invoice {
 		Status:      "open",
 		InvoiceDate: now.Format("2006-01-02"),
 		DueDate:     now.AddDate(0, 0, 14).Format("2006-01-02"),
+		Items: []model.LineItem{{
+			ID:       1,
+			Quantity: 1,
+			TaxRate:  19,
+		}},
 	}
 }
 
 func (h *Handler) list(w http.ResponseWriter, r *http.Request) {
 	user, _ := auth.UserFromContext(r.Context())
+	query := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("q")))
+	status := strings.TrimSpace(r.URL.Query().Get("status"))
+	customerID, _ := strconv.Atoi(r.URL.Query().Get("customer_id"))
+	dunningLevel, _ := strconv.Atoi(r.URL.Query().Get("dunning_level"))
 	invoices := h.store.ListInvoices()
 	views := make([]InvoiceView, 0, len(invoices))
 	for _, inv := range invoices {
-		views = append(views, InvoiceView{
-			Invoice:      inv,
-			CustomerName: h.store.CustomerName(inv.CustomerID),
-		})
+		customerName := h.store.CustomerName(inv.CustomerID)
+		text := strings.ToLower(inv.Number + " " + inv.Title + " " + inv.Description + " " + customerName)
+		if query != "" && !strings.Contains(text, query) {
+			continue
+		}
+		if status != "" && inv.Status != status {
+			continue
+		}
+		if customerID > 0 && inv.CustomerID != customerID {
+			continue
+		}
+		if dunningLevel > 0 && inv.DunningLevel != dunningLevel {
+			continue
+		}
+		views = append(views, InvoiceView{Invoice: inv, CustomerName: customerName})
 	}
 
 	h.renderer.Render(w, http.StatusOK, "invoices.html", map[string]any{
-		"Title":       "Rechnungen",
-		"CurrentUser": user,
-		"Invoices":    views,
-		"Error":       r.URL.Query().Get("error"),
+		"Title":              "Rechnungen",
+		"CurrentUser":        user,
+		"Invoices":           views,
+		"Customers":          h.store.ListCustomers(),
+		"Statuses":           statuses,
+		"Query":              r.URL.Query().Get("q"),
+		"FilterStatus":       status,
+		"FilterCustomerID":   customerID,
+		"FilterDunningLevel": dunningLevel,
+		"Error":              r.URL.Query().Get("error"),
 	})
 }
 
@@ -121,6 +156,9 @@ func (h *Handler) form(w http.ResponseWriter, r *http.Request, inv model.Invoice
 	title := "Rechnung anlegen"
 	if inv.ID > 0 {
 		title = "Rechnung bearbeiten"
+	}
+	if len(inv.Items) == 0 {
+		inv.Items = defaultInvoice().Items
 	}
 
 	h.renderer.Render(w, http.StatusOK, "invoice_form.html", map[string]any{
@@ -143,12 +181,13 @@ func (h *Handler) editForm(w http.ResponseWriter, r *http.Request, id int) {
 }
 
 func (h *Handler) create(w http.ResponseWriter, r *http.Request) {
+	user, _ := auth.UserFromContext(r.Context())
 	inv, err := invoiceFromRequest(r)
 	if err != nil {
 		h.form(w, r, inv, err.Error())
 		return
 	}
-	if _, err := h.store.CreateInvoice(inv); err != nil {
+	if _, err := h.store.CreateInvoiceWithActor(user.Username, inv); err != nil {
 		h.form(w, r, inv, err.Error())
 		return
 	}
@@ -156,13 +195,14 @@ func (h *Handler) create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) update(w http.ResponseWriter, r *http.Request, id int) {
+	user, _ := auth.UserFromContext(r.Context())
 	inv, err := invoiceFromRequest(r)
 	inv.ID = id
 	if err != nil {
 		h.form(w, r, inv, err.Error())
 		return
 	}
-	if err := h.store.UpdateInvoice(inv); err != nil {
+	if err := h.store.UpdateInvoiceWithActor(user.Username, inv); err != nil {
 		h.form(w, r, inv, err.Error())
 		return
 	}
@@ -170,7 +210,8 @@ func (h *Handler) update(w http.ResponseWriter, r *http.Request, id int) {
 }
 
 func (h *Handler) delete(w http.ResponseWriter, r *http.Request, id int) {
-	if err := h.store.DeleteInvoice(id); err != nil && !errors.Is(err, store.ErrNotFound) {
+	user, _ := auth.UserFromContext(r.Context())
+	if err := h.store.DeleteInvoiceWithActor(user.Username, id); err != nil && !errors.Is(err, store.ErrNotFound) {
 		http.Redirect(w, r, "/invoices?error=Löschen fehlgeschlagen.", http.StatusSeeOther)
 		return
 	}
@@ -181,39 +222,30 @@ func invoiceFromRequest(r *http.Request) (model.Invoice, error) {
 	if err := r.ParseForm(); err != nil {
 		return model.Invoice{}, err
 	}
-
 	customerID, _ := strconv.Atoi(r.FormValue("customer_id"))
-	taxRate, _ := strconv.Atoi(r.FormValue("tax_rate"))
-	if taxRate == 0 {
-		taxRate = 19
-	}
-	netAmount, err := web.ParseMoney(r.FormValue("net_amount"))
-	if err != nil {
-		return model.Invoice{}, errors.New("Netto-Betrag ist ungültig.")
-	}
-
+	dunningLevel, _ := strconv.Atoi(r.FormValue("dunning_level"))
 	inv := model.Invoice{
-		CustomerID:  customerID,
-		Title:       strings.TrimSpace(r.FormValue("title")),
-		Description: strings.TrimSpace(r.FormValue("description")),
-		NetAmount:   netAmount,
-		TaxRate:     taxRate,
-		Status:      strings.TrimSpace(r.FormValue("status")),
-		InvoiceDate: strings.TrimSpace(r.FormValue("invoice_date")),
-		DueDate:     strings.TrimSpace(r.FormValue("due_date")),
+		CustomerID:   customerID,
+		Title:        strings.TrimSpace(r.FormValue("title")),
+		Description:  strings.TrimSpace(r.FormValue("description")),
+		Status:       strings.TrimSpace(r.FormValue("status")),
+		InvoiceDate:  strings.TrimSpace(r.FormValue("invoice_date")),
+		DueDate:      strings.TrimSpace(r.FormValue("due_date")),
+		PaymentDate:  strings.TrimSpace(r.FormValue("payment_date")),
+		DunningLevel: dunningLevel,
+		Items:        lineItemsFromRequest(r),
 	}
 	if inv.Status == "" {
 		inv.Status = "open"
 	}
-
+	if inv.PaymentDate != "" {
+		inv.Status = "paid"
+	}
 	if inv.CustomerID <= 0 {
 		return inv, errors.New("Kunde ist Pflicht.")
 	}
 	if inv.Title == "" {
 		return inv, errors.New("Titel ist Pflicht.")
-	}
-	if inv.NetAmount < 0 {
-		return inv, errors.New("Netto-Betrag darf nicht negativ sein.")
 	}
 	if inv.InvoiceDate == "" {
 		return inv, errors.New("Rechnungsdatum ist Pflicht.")
@@ -221,8 +253,43 @@ func invoiceFromRequest(r *http.Request) (model.Invoice, error) {
 	if inv.DueDate == "" {
 		return inv, errors.New("Fälligkeitsdatum ist Pflicht.")
 	}
-
+	if len(model.NormalizeLineItems(inv.Items)) == 0 {
+		return inv, errors.New("Mindestens eine Position ist Pflicht.")
+	}
 	return inv, nil
+}
+
+func lineItemsFromRequest(r *http.Request) []model.LineItem {
+	descriptions := r.Form["item_description"]
+	quantities := r.Form["item_quantity"]
+	amounts := r.Form["item_unit_net"]
+	taxes := r.Form["item_tax_rate"]
+	max := len(descriptions)
+	if len(quantities) > max {
+		max = len(quantities)
+	}
+	if len(amounts) > max {
+		max = len(amounts)
+	}
+	if len(taxes) > max {
+		max = len(taxes)
+	}
+	items := make([]model.LineItem, 0, max)
+	for i := 0; i < max; i++ {
+		desc := getFormIndex(descriptions, i)
+		qty, _ := strconv.ParseInt(strings.TrimSpace(getFormIndex(quantities, i)), 10, 64)
+		unit, _ := web.ParseMoney(getFormIndex(amounts, i))
+		tax, _ := strconv.Atoi(strings.TrimSpace(getFormIndex(taxes, i)))
+		items = append(items, model.LineItem{Description: desc, Quantity: qty, UnitNetAmount: unit, TaxRate: tax})
+	}
+	return items
+}
+
+func getFormIndex(values []string, index int) string {
+	if index < 0 || index >= len(values) {
+		return ""
+	}
+	return strings.TrimSpace(values[index])
 }
 
 func (h *Handler) exportCSV(w http.ResponseWriter, r *http.Request) {
@@ -232,29 +299,21 @@ func (h *Handler) exportCSV(w http.ResponseWriter, r *http.Request) {
 	writer := csv.NewWriter(w)
 	defer writer.Flush()
 
-	_ = writer.Write([]string{
-		"Rechnungsnummer",
-		"Kunde",
-		"Titel",
-		"Status",
-		"Netto Cent",
-		"MwSt",
-		"Brutto Cent",
-		"Rechnungsdatum",
-		"Faelligkeitsdatum",
-	})
-
+	_ = writer.Write([]string{"Rechnungsnummer", "Kunde", "Titel", "Status", "Netto Cent", "MwSt Cent", "Brutto Cent", "Rechnungsdatum", "Faelligkeitsdatum", "Zahlungsdatum", "Mahnstufe"})
 	for _, inv := range h.store.ListInvoices() {
-		_ = writer.Write([]string{
-			inv.Number,
-			h.store.CustomerName(inv.CustomerID),
-			inv.Title,
-			inv.Status,
-			strconv.FormatInt(inv.NetAmount, 10),
-			strconv.Itoa(inv.TaxRate),
-			strconv.FormatInt(inv.GrossAmount, 10),
-			inv.InvoiceDate,
-			inv.DueDate,
-		})
+		_ = writer.Write([]string{inv.Number, h.store.CustomerName(inv.CustomerID), inv.Title, inv.Status, strconv.FormatInt(inv.NetAmount, 10), strconv.FormatInt(inv.TaxAmount, 10), strconv.FormatInt(inv.GrossAmount, 10), inv.InvoiceDate, inv.DueDate, inv.PaymentDate, strconv.Itoa(inv.DunningLevel)})
+	}
+}
+
+func (h *Handler) exportPDF(w http.ResponseWriter, r *http.Request, id int) {
+	inv, ok := h.store.GetInvoice(id)
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+	w.Header().Set("Content-Type", "application/pdf")
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s.pdf"`, inv.Number))
+	if err := pdf.WriteInvoice(w, inv, h.store.CustomerName(inv.CustomerID)); err != nil {
+		http.Error(w, "pdf export failed", http.StatusInternalServerError)
 	}
 }

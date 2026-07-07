@@ -33,17 +33,6 @@
 
         <div class="form-grid">
             <label>
-                Netto-Betrag *
-                <input name="net_amount" value="{{money .Invoice.NetAmount}}" required>
-            </label>
-            <label>
-                MwSt in %
-                <input name="tax_rate" type="number" min="0" max="100" value="{{.Invoice.TaxRate}}">
-            </label>
-        </div>
-
-        <div class="form-grid">
-            <label>
                 Status
                 <select name="status">
                     {{range .Statuses}}
@@ -57,10 +46,61 @@
             </label>
         </div>
 
+        <div class="form-grid">
+            <label>
+                Fälligkeitsdatum *
+                <input name="due_date" type="date" value="{{.Invoice.DueDate}}" required>
+            </label>
+            <label>
+                Zahlungsdatum
+                <input name="payment_date" type="date" value="{{.Invoice.PaymentDate}}">
+            </label>
+        </div>
+
         <label>
-            Fälligkeitsdatum *
-            <input name="due_date" type="date" value="{{.Invoice.DueDate}}" required>
+            Mahnstufe
+            <select name="dunning_level">
+                <option value="0" {{checkedID .Invoice.DunningLevel 0}}>Keine Mahnung</option>
+                <option value="1" {{checkedID .Invoice.DunningLevel 1}}>Mahnstufe 1</option>
+                <option value="2" {{checkedID .Invoice.DunningLevel 2}}>Mahnstufe 2</option>
+                <option value="3" {{checkedID .Invoice.DunningLevel 3}}>Mahnstufe 3</option>
+            </select>
         </label>
+
+        <div class="line-items-head">
+            <h2>Positionen</h2>
+            <button class="button small" type="button" data-add-line-item>Position hinzufügen</button>
+        </div>
+
+        <div class="line-items" data-line-items>
+            {{range .Invoice.Items}}
+            <div class="line-item" data-line-item>
+                <label>
+                    Beschreibung
+                    <input name="item_description" value="{{.Description}}" placeholder="z. B. Entwicklung Backend">
+                </label>
+                <label>
+                    Menge
+                    <input name="item_quantity" type="number" min="1" value="{{.Quantity}}">
+                </label>
+                <label>
+                    Einzel netto
+                    <input name="item_unit_net" value="{{money .UnitNetAmount}}" placeholder="0,00">
+                </label>
+                <label>
+                    MwSt %
+                    <input name="item_tax_rate" type="number" min="0" max="100" value="{{.TaxRate}}">
+                </label>
+                <button class="button danger small" type="button" data-remove-line-item>Entfernen</button>
+            </div>
+            {{end}}
+        </div>
+
+        <div class="totals-box">
+            <span>Netto: <strong>{{money .Invoice.NetAmount}}</strong></span>
+            <span>MwSt: <strong>{{money .Invoice.TaxAmount}}</strong></span>
+            <span>Brutto: <strong>{{money .Invoice.GrossAmount}}</strong></span>
+        </div>
 
         <button class="button primary" type="submit">Speichern</button>
     </form>

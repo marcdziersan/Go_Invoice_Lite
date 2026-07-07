@@ -75,10 +75,24 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) list(w http.ResponseWriter, r *http.Request) {
 	user, _ := auth.UserFromContext(r.Context())
+	query := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("q")))
+	customers := h.store.ListCustomers()
+	if query != "" {
+		filtered := customers[:0]
+		for _, c := range customers {
+			text := strings.ToLower(c.Company + " " + c.ContactName + " " + c.Email + " " + c.Phone + " " + c.City + " " + c.Note)
+			if strings.Contains(text, query) {
+				filtered = append(filtered, c)
+			}
+		}
+		customers = filtered
+	}
+
 	h.renderer.Render(w, http.StatusOK, "customers.html", map[string]any{
 		"Title":       "Kunden",
 		"CurrentUser": user,
-		"Customers":   h.store.ListCustomers(),
+		"Customers":   customers,
+		"Query":       r.URL.Query().Get("q"),
 		"Error":       r.URL.Query().Get("error"),
 	})
 }
@@ -89,7 +103,6 @@ func (h *Handler) form(w http.ResponseWriter, r *http.Request, c model.Customer,
 	if c.ID > 0 {
 		title = "Kunde bearbeiten"
 	}
-
 	h.renderer.Render(w, http.StatusOK, "customer_form.html", map[string]any{
 		"Title":       title,
 		"CurrentUser": user,
@@ -108,13 +121,13 @@ func (h *Handler) editForm(w http.ResponseWriter, r *http.Request, id int) {
 }
 
 func (h *Handler) create(w http.ResponseWriter, r *http.Request) {
+	user, _ := auth.UserFromContext(r.Context())
 	c, err := customerFromRequest(r)
 	if err != nil {
 		h.form(w, r, c, err.Error())
 		return
 	}
-
-	if _, err := h.store.CreateCustomer(c); err != nil {
+	if _, err := h.store.CreateCustomerWithActor(user.Username, c); err != nil {
 		h.form(w, r, c, err.Error())
 		return
 	}
@@ -122,14 +135,14 @@ func (h *Handler) create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) update(w http.ResponseWriter, r *http.Request, id int) {
+	user, _ := auth.UserFromContext(r.Context())
 	c, err := customerFromRequest(r)
 	c.ID = id
 	if err != nil {
 		h.form(w, r, c, err.Error())
 		return
 	}
-
-	if err := h.store.UpdateCustomer(c); err != nil {
+	if err := h.store.UpdateCustomerWithActor(user.Username, c); err != nil {
 		h.form(w, r, c, err.Error())
 		return
 	}
@@ -137,9 +150,10 @@ func (h *Handler) update(w http.ResponseWriter, r *http.Request, id int) {
 }
 
 func (h *Handler) delete(w http.ResponseWriter, r *http.Request, id int) {
-	err := h.store.DeleteCustomer(id)
+	user, _ := auth.UserFromContext(r.Context())
+	err := h.store.DeleteCustomerWithActor(user.Username, id)
 	if errors.Is(err, store.ErrForbidden) {
-		http.Redirect(w, r, "/customers?error=Kunde kann nicht gelöscht werden, weil Angebote oder Rechnungen existieren.", http.StatusSeeOther)
+		http.Redirect(w, r, "/customers?error=Kunde kann nicht gelöscht werden, weil Angebote oder Rechnungen zugeordnet sind.", http.StatusSeeOther)
 		return
 	}
 	if err != nil && !errors.Is(err, store.ErrNotFound) {
@@ -153,7 +167,6 @@ func customerFromRequest(r *http.Request) (model.Customer, error) {
 	if err := r.ParseForm(); err != nil {
 		return model.Customer{}, err
 	}
-
 	c := model.Customer{
 		Company:     strings.TrimSpace(r.FormValue("company")),
 		ContactName: strings.TrimSpace(r.FormValue("contact_name")),
@@ -164,10 +177,8 @@ func customerFromRequest(r *http.Request) (model.Customer, error) {
 		City:        strings.TrimSpace(r.FormValue("city")),
 		Note:        strings.TrimSpace(r.FormValue("note")),
 	}
-
 	if c.Company == "" {
 		return c, errors.New("Firma ist Pflicht.")
 	}
-
 	return c, nil
 }

@@ -366,3 +366,75 @@ textarea:focus {
         font-size: 2.3rem;
     }
 }
+
+.filters {
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) repeat(4, auto);
+    gap: 0.7rem;
+    align-items: center;
+}
+
+.line-items-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.line-items {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.line-item {
+    display: grid;
+    grid-template-columns: minmax(180px, 2fr) 90px 140px 90px auto;
+    gap: 0.7rem;
+    align-items: end;
+    padding: 0.85rem;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: #f8faff;
+}
+
+.totals-box {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    justify-content: flex-end;
+    padding: 0.85rem;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: #fff;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 3rem;
+}
+
+.checkbox-label input {
+    width: auto;
+}
+
+.hint {
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 0.8rem;
+}
+
+.success-alert {
+    color: var(--success);
+    background: #ecfdf3;
+    border-color: #abefc6;
+}
+
+@media (max-width: 900px) {
+    .filters,
+    .line-item {
+        grid-template-columns: 1fr;
+    }
+}
