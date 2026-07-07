@@ -2,6 +2,8 @@
 
 GoInvoice Lite ist eine kleine Business-Webanwendung in Go zur Verwaltung von Kunden, Angeboten, Rechnungen, Benutzern und Audit-Ereignissen. Die Anwendung setzt auf serverseitiges Rendering, einfache HTTP-Routen, Sessions, JSON-Persistenz, ein Migrationssystem und eine schlanke API ohne großes Framework.
 
+<img src="Screenshot 2026-07-07 112908.png">
+
 ## Kurzbeschreibung
 
 Kleines Business-MVP in Go für Kundenverwaltung, Angebote, Rechnungen, Positionslisten, Benutzerverwaltung, Dashboard-Kennzahlen, PDF-/CSV-Export, API-Endpunkte und Audit-Log.
